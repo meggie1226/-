@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>启航看板 - 业务部实习生成长导航</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f2f5;color:#333}
+.header{background:#1a1a2e;color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:20px;font-weight:600}
+.header .role-tabs{display:flex;gap:8px}
+.role-tab{padding:8px 20px;border-radius:6px;cursor:pointer;background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:14px;transition:.2s}
+.role-tab.active{background:#5b5ef7;font-weight:600}
+.role-tab:hover{background:rgba(255,255,255,0.2)}
+.container{max-width:1400px;margin:0 auto;padding:24px}
+.card{background:#fff;border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.card h3{font-size:16px;margin-bottom:16px;color:#1a1a2e;display:flex;align-items:center;gap:8px}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.stat-card{padding:20px;border-radius:10px;text-align:center}
+.stat-card.red{background:#fff1f0;border:1px solid #ffa39e}
+.stat-card.yellow{background:#fffbe6;border:1px solid #ffe58f}
+.stat-card.green{background:#f6ffed;border:1px solid #b7eb8f}
+.stat-card.blue{background:#f0f5ff;border:1px solid #adc6ff}
+.stat-num{font-size:32px;font-weight:700}
+.stat-label{font-size:13px;color:#666;margin-top:4px}
+.heatmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.intern-card{padding:16px;border-radius:10px;border:1px solid #eee;display:flex;align-items:center;gap:12px;cursor:pointer;transition:.2s}
+.intern-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+.intern-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:16px;flex-shrink:0}
+.intern-info{flex:1;min-width:0}
+.intern-name{font-weight:600;font-size:14px}
+.intern-role{font-size:12px;color:#888;margin-top:2px}
+.intern-meta{font-size:11px;color:#aaa;margin-top:2px}
+.status-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;flex-shrink:0}
+.status-badge.green{background:#f6ffed;color:#52c41a}
+.status-badge.yellow{background:#fffbe6;color:#faad14}
+.status-badge.red{background:#fff1f0;color:#f5222d}
+.progress-bar{width:100%;height:6px;background:#eee;border-radius:3px;margin-top:8px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .5s}
+.timeline{position:relative;padding-left:24px}
+.timeline::before{content:"";position:absolute;left:8px;top:0;bottom:0;width:2px;background:#e8e8e8}
+.timeline-item{position:relative;margin-bottom:24px;padding-left:24px}
+.timeline-item::before{content:"";position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#5b5ef7}
+.timeline-item.current::before{box-shadow:0 0 0 4px rgba(91,94,247,0.2)}
+.timeline-item.done::before{background:#52c41a}
+.timeline-date{font-size:12px;color:#888;margin-bottom:4px}
+.timeline-title{font-weight:600;margin-bottom:4px}
+.timeline-desc{font-size:13px;color:#555}
+.task-list{list-style:none}
+.task-item{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid #f5f5f5}
+.task-item:last-child{border-bottom:none}
+.task-checkbox{width:20px;height:20px;border-radius:4px;border:2px solid #d9d9d9;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.task-checkbox.done{background:#52c41a;border-color:#52c41a;color:#fff}
+.task-content{flex:1}
+.task-title{font-size:14px}
+.task-tag{font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px}
+.task-tag.learn{background:#f0f5ff;color:#2f54eb}
+.task-tag.practice{background:#fff7e6;color:#fa8c16}
+.task-tag.actual{background:#f6ffed;color:#52c41a}
+.radar-container{display:flex;justify-content:center;align-items:center;min-height:300px}
+.radar-placeholder{text-align:center;color:#bbb}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100;justify-content:center;align-items:center}
+.modal.show{display:flex}
+.modal-content{background:#fff;border-radius:16px;padding:32px;max-width:800px;width:90%;max-height:80vh;overflow-y:auto}
+.btn{padding:8px 20px;border-radius:6px;border:none;cursor:pointer;font-size:14px;font-weight:500;transition:.2s}
+.btn-primary{background:#5b5ef7;color:#fff}
+.btn-primary:hover{background:#4b4edf}
+.btn-outline{border:1px solid #ddd;background:#fff}
+.btn-outline:hover{background:#f5f5f5}
+.btn-danger{background:#f5222d;color:#fff}
+.btn-sm{padding:4px 12px;font-size:12px}
+.alert-list{border:1px solid #ffe58f;border-radius:8px;overflow:hidden}
+.alert-item{padding:12px 16px;border-bottom:1px solid #ffe58f;background:#fffbe6;display:flex;justify-content:space-between;align-items:center}
+.alert-item:last-child{border-bottom:none}
+.sop-checklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.sop-item{padding:10px 14px;border-radius:8px;border:1px solid #eee;font-size:13px;display:flex;align-items:center;gap:8px}
+.sop-item.done{background:#f6ffed;border-color:#b7eb8f}
+.sop-week{font-size:11px;color:#888;min-width:50px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:768px){.two-col{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}}
+.phase-tabs{display:flex;gap:8px;margin-bottom:20px}
+.phase-tab{padding:10px 24px;border-radius:8px;border:2px solid #eee;cursor:pointer;font-size:14px;font-weight:500;transition:.2s;background:#fff}
+.phase-tab.active{border-color:#5b5ef7;background:#f0f5ff;color:#5b5ef7}
+.phase-tab.completed{border-color:#b7eb8f;background:#f6ffed;color:#52c41a}
+.input-group{margin-bottom:16px}
+.input-group label{display:block;font-size:13px;color:#666;margin-bottom:4px}
+.input-group input,.input-group select,.input-group textarea{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+.diagnosis-question{margin-bottom:20px;padding:16px;background:#fafafa;border-radius:8px}
+.diagnosis-question .q-num{font-size:12px;color:#888;margin-bottom:4px}
+.diagnosis-question .q-title{font-weight:600;margin-bottom:8px}
+.options{display:flex;flex-direction:column;gap:6px}
+.option{padding:10px 14px;border:2px solid #eee;border-radius:8px;cursor:pointer;transition:.2s}
+.option:hover{border-color:#5b5ef7}
+.option.selected{border-color:#5b5ef7;background:#f0f5ff}
+.auth-switch{display:flex;justify-content:center;align-items:center;min-height:80vh}
+.auth-card{background:#fff;border-radius:16px;padding:40px;width:420px;box-shadow:0 4px 20px rgba(0,0,0,0.08);text-align:center}
+.auth-card h2{margin-bottom:8px}
+.auth-card p{color:#888;margin-bottom:24px;font-size:14px}
+.auth-btns{display:flex;flex-direction:column;gap:12px}
+.auth-btn{padding:14px;border-radius:8px;border:2px solid #eee;background:#fff;cursor:pointer;font-size:15px;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.auth-btn:hover{border-color:#5b5ef7;transform:translateY(-1px)}
+.hidden{display:none}
+.boss-battle{padding:20px;background:linear-gradient(135deg,#1a1a2e,#2d2d5e);border-radius:12px;color:#fff;text-align:center}
+.boss-battle h3{color:#ffd700!important}
+.boss-battle .boss-name{font-size:24px;font-weight:700;margin:8px 0}
+.boss-battle .boss-desc{font-size:13px;opacity:.8;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<!-- 角色选择页 -->
+<div id="authPage" class="auth-switch">
+  <div class="auth-card">
+    <h2>🏮 启航看板</h2>
+    <p>业务部实习生成长导航智能体</p>
+    <p style="font-size:12px;color:#aaa;margin-bottom:24px">选择身份进入 Demo</p>
+    <div class="auth-btns">
+      <div class="auth-btn" onclick="loginAs('intern', '张三')">👤 实习生：张三（研发）</div>
+      <div class="auth-btn" onclick="loginAs('mentor', '李导师')">👨‍🏫 导师：李导师（技术导师）</div>
+      <div class="auth-btn" onclick="loginAs('hr', '王HR')">📊 HR：王HR（招聘负责人）</div>
+    </div>
+  </div>
+</div>
+
+<!-- 主界面 -->
+<div id="mainPage" class="hidden">
+  <div class="header">
+    <h1 id="headerTitle">🏮 启航看板</h1>
+    <div class="role-tabs">
+      <button class="role-tab active" data-role="intern" onclick="switchRole('intern','张三')">👤 实习生</button>
+      <button class="role-tab" data-role="mentor" onclick="switchRole('mentor','李导师')">👨‍🏫 导师</button>
+      <button class="role-tab" data-role="hr" onclick="switchRole('hr','王HR')">📊 HR</button>
+    </div>
+  </div>
+  <div class="container" id="contentArea"></div>
+</div>
+
+<script>
+// ============ 数据层 ============
+const internNames = [
+  {name:'赵一',role:'前端开发',dept:'研发',avatarBg:'#5b5ef7'},
+  {name:'钱二',role:'Java后端',dept:'研发',avatarBg:'#7c5cf7'},
+  {name:'张三',role:'Python开发',dept:'研发',avatarBg:'#5b8ef7'},
+  {name:'李四',role:'数据工程师',dept:'研发',avatarBg:'#f75b5b'},
+  {name:'王五',role:'测试开发',dept:'研发',avatarBg:'#f7a35b'},
+  {name:'陈六',role:'iOS开发',dept:'研发',avatarBg:'#5bf77c'},
+  {name:'林七',role:'产品经理',dept:'产品',avatarBg:'#f75bc9'},
+  {name:'黄八',role:'产品运营',dept:'产品',avatarBg:'#5be6f7'},
+  {name:'周九',role:'用户研究',dept:'产品',avatarBg:'#a35bf7'},
+  {name:'吴十',role:'数据分析',dept:'产品',avatarBg:'#f75b8e'},
+  {name:'郑十一',role:'销售经理',dept:'销售',avatarBg:'#5bf79d'},
+  {name:'冯十二',role:'客户经理',dept:'销售',avatarBg:'#f7d45b'},
+  {name:'褚十三',role:'商务拓展',dept:'销售',avatarBg:'#8ef75b'},
+  {name:'蒋十四',role:'售前工程师',dept:'销售',avatarBg:'#5bf7f7'},
+  {name:'沈十五',role:'UI设计师',dept:'研发',avatarBg:'#f75b5b'},
+  {name:'韩十六',role:'算法工程师',dept:'研发',avatarBg:'#5b5ef7'},
+  {name:'杨十七',role:'产品助理',dept:'产品',avatarBg:'#f7a35b'},
+  {name:'朱十八',role:'后端开发',dept:'研发',avatarBg:'#5bf77c'},
+  {name:'秦十九',role:'测试工程师',dept:'研发',avatarBg:'#a35bf7'},
+  {name:'许二十',role:'前端开发',dept:'研发',avatarBg:'#7c5cf7'}
+];
+
+function genInterns() {
+  return internNames.map((d,i) => {
+    const seed = i * 7 + 3;
+    const phase = seed % 3 === 0 ? 3 : seed % 3 === 1 ? 2 : 1;
+    const progress = Math.floor(Math.random() * 80 + 10);
+    const colors = ['green','green','green','green','yellow','yellow','yellow','red','red'];
+    const status = colors[seed % colors.length];
+    const selfScore = status === 'red' ? Math.floor(Math.random() * 40 + 20) :
+                      status === 'yellow' ? Math.floor(Math.random() * 30 + 50) :
+                      Math.floor(Math.random() * 20 + 75);
+    return {
+      ...d, id:i, phase, progress, status, selfScore,
+      taskComplete: status === 'red' ? Math.floor(Math.random() * 30 + 20) :
+                    status === 'yellow' ? Math.floor(Math.random() * 30 + 50) : Math.floor(Math.random() * 20 + 75),
+      weeksIn: Math.floor(seed / 5) + 1,
+      anomaly: status === 'red' || (status === 'yellow' && seed % 2 === 0),
+      anomalyReason: status === 'red' ? '连续两周自评低于50分' : '任务完成率低于60%'
+    };
+  });
+}
+
+let interns = genInterns();
+let currentRole = 'hr';
+let currentUser = '王HR';
+let currentInternId = 0;
+
+// ============ 视图渲染 ============
+function loginAs(role, name) {
+  currentRole = role;
+  currentUser = name;
+  document.getElementById('authPage').classList.add('hidden');
+  document.getElementById('mainPage').classList.remove('hidden');
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.role-tab[data-role="${role}"]`).classList.add('active');
+  renderRole(role);
+}
+
+function switchRole(role, name) {
+  currentRole = role;
+  currentUser = name;
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.role-tab[data-role="${role}"]`).classList.add('active');
+  renderRole(role);
+}
+
+function renderRole(role) {
+  const area = document.getElementById('contentArea');
+  if (role === 'hr') renderHR(area);
+  else if (role === 'mentor') renderMentor(area);
+  else if (role === 'intern') renderIntern(area);
+}
+
+// ============ HR 端 ============
+function renderHR(container) {
+  document.getElementById('headerTitle').textContent = '🏮 启航看板 · HR视图';
+  const red = interns.filter(i=>i.status==='red').length;
+  const yellow = interns.filter(i=>i.status==='yellow').length;
+  const green = interns.filter(i=>i.status==='green').length;
+  const depts = {};
+  interns.forEach(i => {if(!depts[i.dept])depts[i.dept]=[];depts[i.dept].push(i)});
+
+  let deptHeatmaps = '';
+  for(let [dept, list] of Object.entries(depts)) {
+    deptHeatmaps += `
+      <div style="margin-bottom:16px">
+        <h4 style="margin-bottom:8px;color:#666;font-size:14px">📌 ${dept}部（${list.length}人）</h4>
+        <div class="heatmap">
+          ${list.map(i => `
+            <div class="intern-card" onclick="openInternDetail(${i.id})" style="cursor:pointer">
+              <div class="intern-avatar" style="background:${i.avatarBg}">${i.name.slice(-1)}</div>
+              <div class="intern-info">
+                <div class="intern-name">${i.name}</div>
+                <div class="intern-role">${i.role}</div>
+                <div class="intern-meta">第${i.weeksIn}周 · 阶段${i.phase}</div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${i.progress}%;background:${i.status==='red'?'#f5222d':i.status==='yellow'?'#faad14':'#52c41a'}"></div></div>
+              </div>
+              <span class="status-badge ${i.status}">${i.status==='red'?'⚠ 预警':i.status==='yellow'?'关注':'正常'}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+
+  container.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card red"><div class="stat-num">${red}</div><div class="stat-label">⚠ 需关注</div></div>
+      <div class="stat-card yellow"><div class="stat-num">${yellow}</div><div class="stat-label">💬 持续观察</div></div>
+      <div class="stat-card green"><div class="stat-num">${green}</div><div class="stat-label">✅ 状态良好</div></div>
+      <div class="stat-card blue"><div class="stat-num">${interns.length}</div><div class="stat-label">📋 实习生总数</div></div>
+    </div>
+    <div class="card">
+      <h3>📊 适岗热力图 <button class="btn btn-sm btn-outline" onclick="genReport()" style="margin-left:auto">📥 导出周报</button></h3>
+      ${deptHeatmaps}
+    </div>
+    <div id="reportModal" class="modal"><div class="modal-content" id="reportContent"></div></div>
+  `;
+}
+
+function genReport() {
+  const red = interns.filter(i=>i.status==='red');
+  const yellow = interns.filter(i=>i.status==='yellow');
+  const content = `
+    <h3>📋 实习生周报 — ${new Date().toLocaleDateString('zh-CN')}</h3>
+    <p style="color:#888;margin:12px 0">生成人：${currentUser} | AI 自动生成</p>
+    <hr style="margin:16px 0">
+    <h4 style="color:#f5222d">⚠ 需重点关注的实习生（${red.length}人）</h4>
+    <div style="margin:12px 0">${red.map(i=>`<p>• ${i.name}（${i.role}）— ${i.anomalyReason}，自评${i.selfScore}分，建议导师尽快1v1沟通</p>`).join('')}</div>
+    <h4 style="color:#faad14">💬 持续观察（${yellow.length}人）</h4>
+    <div style="margin:12px 0">${yellow.map(i=>`<p>• ${i.name}（${i.role}）— 当前${i.phase}阶段，完成率${i.taskComplete}%，建议下周关注</p>`).join('')}</div>
+    <h4 style="color:#52c41a">✅ 状态良好的实习生（${interns.length-red-yellow}人）</h4>
+    <p style="margin:12px 0">其余实习生整体状态稳定，可保持当前节奏。</p>
+    <button class="btn btn-primary" onclick="document.getElementById('reportModal').classList.remove('show')" style="margin-top:16px">关闭</button>
+  `;
+  document.getElementById('reportContent').innerHTML = content;
+  document.getElementById('reportModal').classList.add('show');
+}
+
+// ============ 导师端 ============
+function renderMentor(container) {
+  document.getElementById('headerTitle').textContent = '🏮 启航看板 · 导师视图';
+  const myInterns = interns.slice(0, 7);
+  const anomalies = myInterns.filter(i=>i.anomaly);
+
+  container.innerHTML = `
+    <div class="two-col">
+      <div>
+        <div class="card">
+          <h3>👥 我带的实习生（${myInterns.length}人）</h3>
+          ${myInterns.map(i => `
+            <div class="intern-card" style="margin-bottom:8px" onclick="openInternDetail(${i.id})">
+              <div class="intern-avatar" style="background:${i.avatarBg}">${i.name.slice(-1)}</div>
+              <div class="intern-info">
+                <div class="intern-name">${i.name} · ${i.role}</div>
+                <div class="intern-meta">阶段${i.phase} · 第${i.weeksIn}周 · 进度${i.progress}%</div>
+              </div>
+              <span class="status-badge ${i.status}">${i.status==='red'?'⚠':i.status==='yellow'?'💬':'✅'}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="card">
+          <h3>📋 本周带教SOP</h3>
+          <div class="sop-checklist">
+            ${['第1周: 入职面谈+路径确认','第2周: 第一周复盘','第3周: 阶段一中期检查','第4周: 模拟业务考核','第5周: 工具链掌握确认','第6周: 独立任务分配','第7周: 阶段一Boss战准备'].map((s,i) => `
+              <div class="sop-item ${i<myInterns[0].weeksIn?'done':''}">
+                <span class="sop-week">W${i+1}</span>
+                <span>${s}${i<myInterns[0].weeksIn?' ✅':''}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h3>🚨 AI异常提醒</h3>
+          <div class="alert-list">
+            ${anomalies.length === 0 ? '<p style="padding:20px;text-align:center;color:#888">🎉 当前无异常，所有实习生状态正常</p>' :
+              anomalies.map(i => `
+                <div class="alert-item">
+                  <div>
+                    <strong>${i.name}</strong> · ${i.role}<br>
+                    <span style="font-size:12px;color:#888">${i.anomalyReason} · 自评${i.selfScore}分</span>
+                  </div>
+                  <button class="btn btn-primary btn-sm" onclick="alert('模拟：已向${i.name}发起1v1辅导邀请 📅')">预约1v1</button>
+                </div>
+              `).join('')
+            }
+          </div>
+        </div>
+        <div class="card">
+          <h3>💡 带教建议</h3>
+          <p style="font-size:13px;color:#555;line-height:1.8">
+            • 本周重点关注阶段一临近通关的实习生，确保Boss战准备充分<br>
+            • 建议对自评低于50分的实习生本周内完成1v1对话<br>
+            • 工具链熟练度是二阶段核心瓶颈，可考虑组织一次工具分享会
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============ 实习生端 ============
+let diagnosisDone = false;
+let diagnosisResult = null;
+let currentPhase = 1;
+
+function renderIntern(container) {
+  document.getElementById('headerTitle').textContent = '🏮 启航看板 · 实习生视图';
+  const me = interns.find(i=>i.id===currentInternId) || interns[2];
+
+  if (!diagnosisDone) {
+    renderDiagnosis(container, me);
+  } else {
+    renderInternDashboard(container, me);
+  }
+}
+
+function renderDiagnosis(container, me) {
+  container.innerHTML = `
+    <div class="card">
+      <h3>🔍 岗位适应度诊断</h3>
+      <p style="color:#888;margin-bottom:20px;font-size:14px">回答以下5题，AI将评估你与岗位的匹配度，并生成个性化成长路径</p>
+      <form id="diagnosisForm" onsubmit="submitDiagnosis(event, ${me.id}, '${me.role}')">
+        <div class="diagnosis-question">
+          <div class="q-num">第1题 / 5</div>
+          <div class="q-title">你对${me.dept}部业务核心流程的理解程度？</div>
+          <div class="options">
+            ${[1,2,3,4,5].map(s => `<label class="option"><input type="radio" name="q1" value="${s}" required> ${['完全不了解','知道大概','了解部分','比较熟悉','非常熟悉'][s-1]}</label>`).join('')}
+          </div>
+        </div>
+        <div class="diagnosis-question">
+          <div class="q-num">第2题 / 5</div>
+          <div class="q-title">${me.role}所需的核心技能，你当前掌握程度？</div>
+          <div class="options">
+            ${[1,2,3,4,5].map(s => `<label class="option"><input type="radio" name="q2" value="${s}" required> ${['刚入门','能用但不熟练','能独立完成','比较熟练','可以指导他人'][s-1]}</label>`).join('')}
+          </div>
+        </div>
+        <div class="diagnosis-question">
+          <div class="q-num">第3题 / 5</div>
+          <div class="q-title">与同事/导师协作沟通的主动性？</div>
+          <div class="options">
+            ${[1,2,3,4,5].map(s => `<label class="option"><input type="radio" name="q3" value="${s}" required> ${['比较被动等安排','偶尔主动','正常交流','主动请教','积极推动'][s-1]}</label>`).join('')}
+          </div>
+        </div>
+        <div class="diagnosis-question">
+          <div class="q-num">第4题 / 5</div>
+          <div class="q-title">对${me.dept === '研发' ? '开发工具链（IDE/Git/CI等）' : me.dept === '产品' ? '产品工具（Axure/Figma/数据分析等）' : '销售工具（CRM/数据分析/话术框架等）'}的熟练度？</div>
+          <div class="options">
+            ${[1,2,3,4,5].map(s => `<label class="option"><input type="radio" name="q4" value="${s}" required> ${['基本不会','了解但没怎么用过','偶尔使用','日常使用','可以培训他人'][s-1]}</label>`).join('')}
+          </div>
+        </div>
+        <div class="diagnosis-question">
+          <div class="q-num">第5题 / 5</div>
+          <div class="q-title">你偏好的学习方式是？</div>
+          <div class="options">
+            <label class="option"><input type="radio" name="q5" value="1" required> 看文档/教程，系统学习</label>
+            <label class="option"><input type="radio" name="q5" value="2"> 边做边学，在实践中掌握</label>
+            <label class="option"><input type="radio" name="q5" value="3"> 跟着导师做，模仿学习</label>
+            <label class="option"><input type="radio" name="q5" value="4"> 喜欢跟同龄人讨论交流</label>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;padding:14px">提交诊断 🔍</button>
+      </form>
+    </div>
+  `;
+}
+
+function submitDiagnosis(e, id, role) {
+  e.preventDefault();
+  const form = document.getElementById('diagnosisForm');
+  const vals = [form.q1.value,form.q2.value,form.q3.value,form.q4.value,form.q5.value].map(Number);
+  const avg = Math.round(vals.slice(0,4).reduce((a,b)=>a+b)/4);
+  const weakPoints = [];
+  if(vals[0]<=3) weakPoints.push({name:'业务理解',level:vals[0]});
+  if(vals[1]<=3) weakPoints.push({name:'核心技能',level:vals[1]});
+  if(vals[2]<=3) weakPoints.push({name:'沟通协作',level:vals[2]});
+  if(vals[3]<=3) weakPoints.push({name:'工具基础',level:vals[3]});
+
+  diagnosisResult = {avg,weakPoints,learningStyle:['系统学习','实践','模仿','讨论'][vals[4]-1],role};
+  diagnosisDone = true;
+
+  // 根据薄弱点数量调整阶段节奏
+  if(weakPoints.length >= 3) currentPhase = 1;
+  else if(weakPoints.length >= 1) currentPhase = 2;
+  else currentPhase = 3;
+
+  renderIntern(document.getElementById('contentArea'));
+}
+
+function renderInternDashboard(container, me) {
+  const phases = [
+    {name:'一阶段',boss:'新手村',target:'补薄弱项、了解业务、参与1个协作任务',check:'AI模拟业务场景问答',icon:'🏕️'},
+    {name:'二阶段',boss:'试炼塔',target:'独立完成模块任务、掌握岗位核心工具链',check:'真实业务任务+导师评审',icon:'🏯'},
+    {name:'三阶段',boss:'龙之巢',target:'主导小项目、能带新人做基础协作',check:'端到端项目路演',icon:'🐉'}
+  ];
+
+  // 根据诊断结果定制薄弱项描述
+  let weakDesc = '';
+  if(diagnosisResult.weakPoints.length > 0) {
+    weakDesc = diagnosisResult.weakPoints.map(w => `${w.name}(当前${w.level}/5)`).join('、');
+  } else {
+    weakDesc = '无明显薄弱项，基础扎实';
+  }
+
+  // 任务列表根据阶段生成
+  const phaseTasks = {
+    1: [
+      {title:'阅读部门业务文档',tag:'learn',done:true},
+      {title:'工具链基础配置',tag:'practice',done:true},
+      {title:'跟随导师完成1个协作任务',tag:'actual',done:false},
+      {title:'薄弱项专项练习',tag:'learn',done:false},
+      {title:'阶段一自评',tag:'learn',done:false}
+    ],
+    2: [
+      {title:'独立负责模块子任务',tag:'actual',done:true},
+      {title:'掌握核心工具链全流程',tag:'practice',done:false},
+      {title:'参与组内技术/业务分享',tag:'learn',done:false},
+      {title:'输出第一份独立工作成果',tag:'actual',done:false},
+      {title:'阶段二中期自评',tag:'learn',done:false}
+    ],
+    3: [
+      {title:'主导端到端项目设计',tag:'actual',done:false},
+      {title:'带领1名新实习生做任务',tag:'practice',done:false},
+      {title:'输出岗位最佳实践文档',tag:'learn',done:false},
+      {title:'项目路演准备',tag:'actual',done:false},
+      {title:'阶段三终期考核',tag:'learn',done:false}
+    ]
+  };
+
+  let phaseContent = '';
+  for(let p=1; p<=3; p++) {
+    const phase = phases[p-1];
+    const isActive = p === (diagnosisResult.weakPoints.length >= 3 ? 1 : diagnosisResult.weakPoints.length >= 1 ? 2 : 3) ? true : p < (diagnosisResult.weakPoints.length >= 3 ? 1 : diagnosisResult.weakPoints.length >= 1 ? 2 : 3);
+    const isPast = p < (diagnosisResult.weakPoints.length >= 3 ? 1 : diagnosisResult.weakPoints.length >= 1 ? 2 : 3);
+
+    phaseContent += `
+      <div style="margin-bottom:24px;padding:20px;border-radius:10px;border:2px solid ${isActive?'#5b5ef7':isPast?'#b7eb8f':'#eee'};background:${isActive?'#f0f5ff':isPast?'#f6ffed':'#fff'}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-weight:700;font-size:16px">${phase.icon} ${phase.name} · ${phase.boss}</div>
+          <span class="status-badge ${isActive?'green':isPast?'':'default'}" style="${!isActive&&!isPast?'background:#f5f5f5;color:#bbb':''}">
+            ${isActive?'进行中':isPast?'✅ 已通关':'未解锁'}
+          </span>
+        </div>
+        <p style="font-size:13px;color:#555;margin-bottom:8px"><strong>目标：</strong>${phase.target}</p>
+        <p style="font-size:13px;color:#555;margin-bottom:12px"><strong>考核方式：</strong>${phase.check}</p>
+        ${isActive ? `
+          <div style="background:#fff;border-radius:8px;padding:16px;border:1px solid #e8e8e8">
+            <p style="font-size:13px;font-weight:600;margin-bottom:8px">📋 当前任务</p>
+            <ul class="task-list">
+              ${phaseTasks[p].map(t => `
+                <li class="task-item" style="cursor:pointer">
+                  <div class="task-checkbox ${t.done?'done':''}" onclick="this.classList.toggle('done')">${t.done?'✓':''}</div>
+                  <div class="task-content">
+                    <span class="task-title">${t.title}</span>
+                    <span class="task-tag ${t.tag}">${t.tag==='learn'?'📖 学习':t.tag==='practice'?'🔧 练习':'💼 实战'}</span>
+                  </div>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        ` : ''}
+        ${p===3 && !isActive ? `
+          <div class="boss-battle" style="margin-top:12px">
+            <div>🔒 三阶段Boss预览</div>
+            <div class="boss-name">🐉 龙之巢主考官</div>
+            <div class="boss-desc">通关前两阶段后解锁：主导一个端到端项目，展示完整工作成果</div>
+          </div>
+        ` : ''}
+      </div>`;
+  }
+
+  container.innerHTML = `
+    <div class="card">
+      <h3>📊 诊断结果 <span style="font-size:12px;color:#888;font-weight:400">（入职第1天）</span></h3>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+        <div style="padding:12px;background:#fafafa;border-radius:8px;text-align:center">
+          <div style="font-size:24px;font-weight:700;color:${diagnosisResult.avg>=4?'#52c41a':diagnosisResult.avg>=3?'#faad14':'#f5222d'}">${diagnosisResult.avg}/5</div>
+          <div style="font-size:11px;color:#888">综合匹配度</div>
+        </div>
+        <div style="padding:12px;background:#fafafa;border-radius:8px;text-align:center">
+          <div style="font-size:14px;font-weight:600">${diagnosisResult.weakPoints.length}项</div>
+          <div style="font-size:11px;color:#888">薄弱项</div>
+        </div>
+        <div style="padding:12px;background:#fafafa;border-radius:8px;text-align:center">
+          <div style="font-size:14px;font-weight:600">${diagnosisResult.learningStyle}</div>
+          <div style="font-size:11px;color:#888">学习偏好</div>
+        </div>
+        <div style="padding:12px;background:#fafafa;border-radius:8px;text-align:center">
+          <div style="font-size:14px;font-weight:600;color:#5b5ef7">${diagnosisResult.weakPoints.length>=3?'夯实基础':diagnosisResult.weakPoints.length>=1?'加速成长':'快速通关'}</div>
+          <div style="font-size:11px;color:#888">建议路径</div>
+        </div>
+      </div>
+      <p style="font-size:13px;color:#555;line-height:1.8">
+        <strong>诊断说明：</strong>${me.name}（${me.role}）综合匹配度${diagnosisResult.avg}/5，薄弱项：${weakDesc || '无'}。
+        学习风格为「${diagnosisResult.learningStyle}」，推荐路径为<strong>${diagnosisResult.weakPoints.length>=3?'一阶段重点补课、打好基础后再进入实操':diagnosisResult.weakPoints.length>=1?'二阶段侧重薄弱项专项、同步推进工具链':'基础扎实，快速通过一二阶段，重点放在三阶段实战主导'}</strong>。
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>🎯 成长路径 · ${diagnosisResult.weakPoints.length>=3?'夯实基础':diagnosisResult.weakPoints.length>=1?'均衡成长':'快速通关'}路线</h3>
+      ${phaseContent}
+    </div>
+  `;
+}
+
+// ============ 通用：实习生详情弹窗 ============
+function openInternDetail(id) {
+  const i = interns.find(x=>x.id===id);
+  if(!i) return;
+  const modal = document.createElement('div');
+  modal.className = 'modal show';
+  modal.onclick = e => {if(e.target===modal) modal.remove();};
+  modal.innerHTML = `
+    <div class="modal-content">
+      <h3>${i.name} · ${i.role}</h3>
+      <p style="color:#888;margin:8px 0">${i.dept}部 · 第${i.weeksIn}周 · 阶段${i.phase}</p>
+      <div style="margin:16px 0">
+        <p style="font-size:13px"><strong>当前进度：</strong>${i.progress}%</p>
+        <div class="progress-bar" style="margin:8px 0"><div class="progress-fill" style="width:${i.progress}%;background:${i.status==='red'?'#f5222d':i.status==='yellow'?'#faad14':'#52c41a'}"></div></div>
+        <p style="font-size:13px"><strong>自评分数：</strong>${i.selfScore}/100</p>
+        <p style="font-size:13px"><strong>任务完成率：</strong>${i.taskComplete}%</p>
+        <p style="font-size:13px"><strong>状态：</strong><span class="status-badge ${i.status}">${i.status==='red'?'预警':i.status==='yellow'?'关注':'正常'}</span></p>
+        ${i.anomaly ? `<p style="font-size:13px;color:#f5222d;margin-top:8px">⚠ ${i.anomalyReason}</p>` : ''}
+      </div>
+      <button class="btn btn-outline" onclick="this.closest('.modal').remove()">关闭</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// 初始进入 HR 视图
+loginAs('hr', '王HR');
+</script>
+</body>
+</html>
